@@ -1,9 +1,9 @@
-import express from 'express';
-import { authenticate } from '../middleware/auth';
-import { AgentController } from '../controllers/agentController';
+import { Router, RequestHandler } from 'express';
+import { AgentService } from '../services/agentService';
+import { authenticate, AuthRequest } from '../middleware/authenticate';
 
-const router = express.Router();
-const agentController = new AgentController();
+const router = Router();
+const agentService = new AgentService();
 
 /**
  * @swagger
@@ -11,24 +11,31 @@ const agentController = new AgentController();
  *   get:
  *     summary: 获取 Agent 列表
  *     tags: [Agents]
- *     parameters:
- *       - in: query
- *         name: page
- *         schema:
- *           type: integer
- *       - in: query
- *         name: limit
- *         schema:
- *           type: integer
- *       - in: query
- *         name: type
- *         schema:
- *           type: string
- *     responses:
- *       200:
- *         description: 成功返回 Agent 列表
  */
-router.get('/', authenticate, agentController.getAgents);
+const getAgentsHandler: RequestHandler = async (req, res) => {
+  try {
+    const authReq = req as AuthRequest;
+    if (!authReq.user) {
+      res.status(401).json({ message: 'Unauthorized' });
+      return;
+    }
+
+    const { type, status, page, limit, search } = req.query;
+    const result = await agentService.getAgents(authReq.user.userId, {
+      type: type as string,
+      status: status as string,
+      page: page ? parseInt(page as string, 10) : undefined,
+      limit: limit ? parseInt(limit as string, 10) : undefined,
+      search: search as string,
+    });
+
+    res.json(result);
+  } catch (error) {
+    res.status(500).json({ message: '获取 Agent 列表失败' });
+  }
+};
+
+router.get('/', authenticate, getAgentsHandler);
 
 /**
  * @swagger
@@ -36,24 +43,32 @@ router.get('/', authenticate, agentController.getAgents);
  *   post:
  *     summary: 创建新 Agent
  *     tags: [Agents]
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             properties:
- *               name:
- *                 type: string
- *               type:
- *                 type: string
- *               config:
- *                 type: object
- *     responses:
- *       201:
- *         description: Agent 创建成功
  */
-router.post('/', authenticate, agentController.createAgent);
+const createAgentHandler: RequestHandler = async (req, res) => {
+  try {
+    const authReq = req as AuthRequest;
+    if (!authReq.user) {
+      res.status(401).json({ message: 'Unauthorized' });
+      return;
+    }
+
+    const { name, type, description, config, status } = req.body;
+    const agent = await agentService.createAgent({
+      name,
+      type,
+      description,
+      config,
+      status,
+      ownerId: authReq.user.userId,
+    });
+
+    res.status(201).json(agent);
+  } catch (error) {
+    res.status(500).json({ message: '创建 Agent 失败' });
+  }
+};
+
+router.post('/', authenticate, createAgentHandler);
 
 /**
  * @swagger
@@ -61,17 +76,23 @@ router.post('/', authenticate, agentController.createAgent);
  *   get:
  *     summary: 获取 Agent 详情
  *     tags: [Agents]
- *     parameters:
- *       - in: path
- *         name: id
- *         required: true
- *         schema:
- *           type: string
- *     responses:
- *       200:
- *         description: 成功返回 Agent 详情
  */
-router.get('/:id', authenticate, agentController.getAgentById);
+const getAgentByIdHandler: RequestHandler = async (req, res) => {
+  try {
+    const agent = await agentService.getAgentById(req.params.id);
+
+    if (!agent) {
+      res.status(404).json({ message: 'Agent not found' });
+      return;
+    }
+
+    res.json(agent);
+  } catch (error) {
+    res.status(500).json({ message: '获取 Agent 失败' });
+  }
+};
+
+router.get('/:id', authenticate, getAgentByIdHandler);
 
 /**
  * @swagger
@@ -80,7 +101,24 @@ router.get('/:id', authenticate, agentController.getAgentById);
  *     summary: 更新 Agent
  *     tags: [Agents]
  */
-router.put('/:id', authenticate, agentController.updateAgent);
+const updateAgentHandler: RequestHandler = async (req, res) => {
+  try {
+    const { name, type, description, config, status } = req.body;
+    const agent = await agentService.updateAgent(req.params.id, {
+      name,
+      type,
+      description,
+      config,
+      status,
+    });
+
+    res.json(agent);
+  } catch (error) {
+    res.status(500).json({ message: '更新 Agent 失败' });
+  }
+};
+
+router.put('/:id', authenticate, updateAgentHandler);
 
 /**
  * @swagger
@@ -89,7 +127,16 @@ router.put('/:id', authenticate, agentController.updateAgent);
  *     summary: 删除 Agent
  *     tags: [Agents]
  */
-router.delete('/:id', authenticate, agentController.deleteAgent);
+const deleteAgentHandler: RequestHandler = async (req, res) => {
+  try {
+    await agentService.deleteAgent(req.params.id);
+    res.status(204).send();
+  } catch (error) {
+    res.status(500).json({ message: '删除 Agent 失败' });
+  }
+};
+
+router.delete('/:id', authenticate, deleteAgentHandler);
 
 /**
  * @swagger
@@ -98,6 +145,15 @@ router.delete('/:id', authenticate, agentController.deleteAgent);
  *     summary: 启用/禁用 Agent
  *     tags: [Agents]
  */
-router.post('/:id/toggle', authenticate, agentController.toggleAgent);
+const toggleAgentHandler: RequestHandler = async (req, res) => {
+  try {
+    const agent = await agentService.toggleAgent(req.params.id);
+    res.json(agent);
+  } catch (error: any) {
+    res.status(500).json({ message: error.message || '切换状态失败' });
+  }
+};
+
+router.post('/:id/toggle', authenticate, toggleAgentHandler);
 
 export default router;

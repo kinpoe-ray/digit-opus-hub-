@@ -13,12 +13,16 @@
 
 ## ✨ 核心功能
 
-- 🤖 **Agent 管理**: 统一管理所有 AI 数字员工的生命周期
-- 📋 **任务编排**: 智能任务分配和多 Agent 协作
-- 📊 **实时监控**: Dashboard 展示 Agent 状态和性能指标
-- 🔄 **工作流引擎**: 可视化编排复杂业务流程
-- 🔒 **企业级安全**: 权限管理、审计日志、数据加密
-- 🎯 **多 LLM 支持**: OpenAI, Anthropic, 自定义模型
+- 🤖 **Agent 管理**: 统一管理所有 AI 数字员工的生命周期，支持创建、配置、启停
+- 📋 **任务编排**: 智能任务分配和多 Agent 协作，基于Bull队列的异步任务执行
+- 📊 **实时监控**: Dashboard 展示 Agent 状态和性能指标，完整的系统健康监控
+- 🔄 **工作流引擎**: 可视化编排复杂业务流程（规划中）
+- 🔒 **企业级安全**: JWT认证、权限管理、审计日志、数据加密
+- 🎯 **多 LLM 支持**: 真实集成 OpenAI (GPT-4/3.5)、Anthropic (Claude-3)，可扩展架构
+- 📈 **分页搜索**: Agent和Task列表支持真实分页和模糊搜索
+- 📝 **结构化日志**: Winston多级日志系统，支持日志轮转和分类存储
+- 🔁 **重试机制**: 自动重试失败任务，指数退避策略
+- 💰 **成本追踪**: 精确的Token计数和费用估算
 
 ---
 
@@ -33,11 +37,13 @@
 
 ### 后端
 - **Node.js 20** + **Express.js** + **TypeScript**
-- **Prisma** ORM
+- **Prisma** ORM (PostgreSQL)
 - **PostgreSQL** 数据库
 - **Redis** 缓存和队列
-- **Bull** 任务队列
-- **OpenAI SDK** / **LangChain**
+- **Bull** 任务队列（支持优先级、重试、监控）
+- **OpenAI SDK** + **Anthropic SDK**（真实AI集成）
+- **Winston** 结构化日志系统
+- **Swagger** 自动API文档
 
 ### DevOps
 - **Docker** + **Docker Compose**
@@ -172,14 +178,39 @@ REDIS_URL=redis://localhost:6379
 # JWT
 JWT_SECRET=your-secret-key
 
-# OpenAI
+# AI Provider API Keys
 OPENAI_API_KEY=sk-...
+ANTHROPIC_API_KEY=sk-ant-...
 
 # 应用配置
 NODE_ENV=development
 PORT=3000
 FRONTEND_URL=http://localhost:5173
+
+# 日志配置
+LOG_LEVEL=info
+LOG_DIR=logs
 ```
+
+---
+
+## 📡 API 端点
+
+### 核心 API
+- `POST /api/auth/register` - 用户注册
+- `POST /api/auth/login` - 用户登录
+- `GET /api/agents` - 获取Agent列表（支持分页、搜索）
+- `POST /api/agents` - 创建Agent
+- `GET /api/tasks` - 获取任务列表（支持分页、搜索）
+- `POST /api/tasks` - 创建任务（自动进入队列执行）
+- `GET /api/dashboard/stats` - 获取仪表盘统计
+
+### 监控 API
+- `GET /api/monitoring/health` - 系统健康检查
+- `GET /api/monitoring/metrics` - 性能指标
+- `GET /api/monitoring/queue` - 队列状态
+
+完整API文档访问：http://localhost:3000/api-docs
 
 ---
 

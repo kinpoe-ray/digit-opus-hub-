@@ -1,0 +1,30 @@
+# Node.js 后端开发环境 Dockerfile
+FROM node:20-alpine
+
+# 安装必要的工具
+RUN apk add --no-cache bash openssl openssl-dev
+
+# 设置工作目录
+WORKDIR /app
+
+# 复制 server package.json
+COPY server/package*.json ./
+
+# 安装依赖
+RUN npm install
+
+# 复制 prisma schema
+COPY prisma ./prisma/
+
+# 生成 Prisma Client
+RUN npx prisma generate
+
+# 复制 server 源代码（排除已有的 node_modules 和 prisma）
+COPY server/src ./src
+COPY server/tsconfig.json ./tsconfig.json
+
+# 暴露端口
+EXPOSE 3000
+
+# 开发模式启动（使用 nodemon）
+CMD ["npm", "run", "dev"]

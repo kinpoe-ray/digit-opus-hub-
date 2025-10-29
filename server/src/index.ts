@@ -10,13 +10,23 @@ import authRoutes from './routes/auth';
 import agentRoutes from './routes/agents';
 import taskRoutes from './routes/tasks';
 import dashboardRoutes from './routes/dashboard';
+import monitoringRoutes from './routes/monitoring';
 
 // 导入中间件
 import { errorHandler } from './middleware/errorHandler';
 import { requestLogger } from './middleware/requestLogger';
 import { rateLimiter } from './middleware/rateLimiter';
 
+// AI 集成
+import { registerProviders } from './integrations/register';
+import { TaskService } from './services/taskService';
+import { processTask } from './queues/processors/taskProcessor';
+import logger from './lib/logger';
+
 dotenv.config();
+
+// 注册 AI Providers
+registerProviders();
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -41,6 +51,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api/agents', agentRoutes);
 app.use('/api/tasks', taskRoutes);
 app.use('/api/dashboard', dashboardRoutes);
+app.use('/api/monitoring', monitoringRoutes);
 
 // Swagger 文档
 const swaggerOptions = {
@@ -65,17 +76,23 @@ const swaggerSpec = swaggerJsdoc(swaggerOptions);
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 
 // 健康检查
-app.get('/health', (req, res) => {
+app.get('/health', (_req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
 });
 
 // 错误处理
 app.use(errorHandler);
 
+// 初始化任务队列和 Worker
+const queue = TaskService.initQueue();
+queue.process(2, processTask); // 2个并发 worker
+logger.info('✅ Task Worker started with concurrency: 2');
+
 // 启动服务器
 app.listen(PORT, () => {
-  console.log(`🚀 Server running on http://localhost:${PORT}`);
-  console.log(`📚 API docs available at http://localhost:${PORT}/api-docs`);
+  logger.info(`🚀 Server running on http://localhost:${PORT}`);
+  logger.info(`📚 API docs available at http://localhost:${PORT}/api-docs`);
+  logger.info('🔥 AI Task Queue is ready!');
 });
 
 export default app;
