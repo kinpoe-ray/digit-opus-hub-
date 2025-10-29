@@ -1,0 +1,253 @@
+// Prisma Schema for digit-opus-hub
+// Database: PostgreSQL
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// 用户表
+model User {
+  id            String   @id @default(uuid())
+  email         String   @unique
+  passwordHash  String   @map("password_hash")
+  name          String
+  avatarUrl     String?  @map("avatar_url")
+  role          Role     @default(VIEWER)
+  status        UserStatus @default(ACTIVE)
+  lastLoginAt   DateTime?  @map("last_login_at")
+  createdAt     DateTime   @default(now()) @map("created_at")
+  updatedAt     DateTime   @updatedAt @map("updated_at")
+
+  // 关系
+  agents        Agent[]
+  tasks         Task[]
+  workflows     Workflow[]
+  auditLogs     AuditLog[]
+  apiKeys       ApiKey[]
+
+  @@map("users")
+}
+
+enum Role {
+  ADMIN
+  EDITOR
+  VIEWER
+  DEVELOPER
+}
+
+enum UserStatus {
+  ACTIVE
+  INACTIVE
+  SUSPENDED
+}
+
+// Agent 表
+model Agent {
+  id          String   @id @default(uuid())
+  name        String
+  type        String
+  description String?
+  avatarUrl   String?  @map("avatar_url")
+  config      Json     // Agent 配置（模型、提示词、工具等）
+  status      AgentStatus @default(INACTIVE)
+
+  // 统计信息
+  totalTasks       Int    @default(0) @map("total_tasks")
+  successRate      Float  @default(0) @map("success_rate")
+  avgResponseTime  Float  @default(0) @map("avg_response_time")
+  totalTokensUsed  Int    @default(0) @map("total_tokens_used")
+
+  // 关系
+  ownerId     String   @map("owner_id")
+  owner       User     @relation(fields: [ownerId], references: [id])
+  tasks       Task[]
+
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  @@index([ownerId])
+  @@index([type])
+  @@index([status])
+  @@map("agents")
+}
+
+enum AgentStatus {
+  ACTIVE
+  INACTIVE
+  ERROR
+}
+
+// 任务表
+model Task {
+  id          String   @id @default(uuid())
+  name        String
+  description String?
+
+  // 执行信息
+  agentId     String   @map("agent_id")
+  agent       Agent    @relation(fields: [agentId], references: [id])
+  workflowId  String?  @map("workflow_id")
+  workflow    Workflow? @relation(fields: [workflowId], references: [id])
+
+  status      TaskStatus @default(PENDING)
+  priority    Priority   @default(NORMAL)
+
+  // 数据
+  input       Json
+  output      Json?
+  error       Json?    // { code, message, stack }
+
+  // 指标
+  startedAt   DateTime?  @map("started_at")
+  completedAt DateTime?  @map("completed_at")
+  durationMs  Int?       @map("duration_ms")
+  tokensUsed  Int?       @map("tokens_used")
+  apiCalls    Int?       @map("api_calls")
+
+  // 关系
+  createdBy   String     @map("created_by")
+  creator     User       @relation(fields: [createdBy], references: [id])
+  logs        Log[]
+
+  createdAt   DateTime   @default(now()) @map("created_at")
+  updatedAt   DateTime   @updatedAt @map("updated_at")
+
+  @@index([agentId])
+  @@index([status])
+  @@index([createdBy])
+  @@index([createdAt])
+  @@map("tasks")
+}
+
+enum TaskStatus {
+  PENDING
+  RUNNING
+  COMPLETED
+  FAILED
+  CANCELLED
+}
+
+enum Priority {
+  LOW
+  NORMAL
+  HIGH
+  URGENT
+}
+
+// 工作流表
+model Workflow {
+  id          String   @id @default(uuid())
+  name        String
+  description String?
+  definition  Json     // { nodes, edges }
+  status      WorkflowStatus @default(DRAFT)
+  trigger     Json?    // { type, config }
+
+  // 统计
+  totalExecutions Int   @default(0) @map("total_executions")
+  successRate     Float @default(0) @map("success_rate")
+
+  // 关系
+  ownerId     String   @map("owner_id")
+  owner       User     @relation(fields: [ownerId], references: [id])
+  tasks       Task[]
+
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  @@index([ownerId])
+  @@index([status])
+  @@map("workflows")
+}
+
+enum WorkflowStatus {
+  DRAFT
+  PUBLISHED
+  ARCHIVED
+}
+
+// 日志表
+model Log {
+  id          String   @id @default(uuid())
+
+  taskId      String?  @map("task_id")
+  task        Task?    @relation(fields: [taskId], references: [id])
+  agentId     String?  @map("agent_id")
+
+  level       LogLevel
+  message     String
+  metadata    Json?
+
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  @@index([taskId])
+  @@index([level])
+  @@index([createdAt])
+  @@map("logs")
+}
+
+enum LogLevel {
+  DEBUG
+  INFO
+  WARN
+  ERROR
+}
+
+// 审计日志表
+model AuditLog {
+  id           String   @id @default(uuid())
+
+  userId       String   @map("user_id")
+  user         User     @relation(fields: [userId], references: [id])
+
+  action       String   // create_agent, update_task, etc.
+  resourceType String   @map("resource_type")
+  resourceId   String   @map("resource_id")
+  changes      Json?    // 变更内容
+
+  ipAddress    String   @map("ip_address")
+  userAgent    String   @map("user_agent")
+
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  @@index([userId])
+  @@index([action])
+  @@index([resourceType, resourceId])
+  @@index([createdAt])
+  @@map("audit_logs")
+}
+
+// API 密钥表
+model ApiKey {
+  id          String   @id @default(uuid())
+  name        String
+  key         String   @unique  // hashed
+
+  userId      String   @map("user_id")
+  user        User     @relation(fields: [userId], references: [id])
+
+  status      ApiKeyStatus @default(ACTIVE)
+  lastUsedAt  DateTime? @map("last_used_at")
+  expiresAt   DateTime? @map("expires_at")
+
+  // 使用统计
+  totalCalls  Int      @default(0) @map("total_calls")
+
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  @@index([userId])
+  @@index([key])
+  @@map("api_keys")
+}
+
+enum ApiKeyStatus {
+  ACTIVE
+  REVOKED
+  EXPIRED
+}

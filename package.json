@@ -1,0 +1,33 @@
+{
+  "name": "digit-opus-hub",
+  "version": "0.1.0",
+  "description": "数字员工管理中台 - AI Agent 编排和管理平台",
+  "private": true,
+  "scripts": {
+    "dev": "concurrently \"npm run server:dev\" \"npm run client:dev\"",
+    "server:dev": "cd server && npm run dev",
+    "client:dev": "cd client && npm run dev",
+    "build": "npm run client:build && npm run server:build",
+    "client:build": "cd client && npm run build",
+    "server:build": "cd server && npm run build",
+    "start": "cd server && npm start",
+    "install:all": "npm install && cd server && npm install && cd ../client && npm install",
+    "db:migrate": "cd server && npx prisma migrate dev",
+    "db:seed": "cd server && npx prisma db seed",
+    "test": "npm run server:test && npm run client:test",
+    "server:test": "cd server && npm test",
+    "client:test": "cd client && npm test"
+  },
+  "keywords": [
+    "AI",
+    "Agent",
+    "LLM",
+    "Automation",
+    "Orchestration"
+  ],
+  "author": "digit-opus-hub team",
+  "license": "MIT",
+  "devDependencies": {
+    "concurrently": "^8.2.2"
+  }
+}
