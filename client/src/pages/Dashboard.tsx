@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Card, Row, Col, Statistic, Spin, message } from 'antd';
+import { Row, Col, Spin, message } from 'antd';
 import {
   RobotOutlined,
   CheckCircleOutlined,
@@ -8,6 +8,7 @@ import {
 } from '@ant-design/icons';
 import { dashboardApi } from '../api/dashboard';
 import { DashboardStats } from '../types';
+import { PageHeader, StatCard } from '../components';
 
 const Dashboard: React.FC = () => {
   const [loading, setLoading] = useState(true);
@@ -46,79 +47,70 @@ const Dashboard: React.FC = () => {
   }
 
   return (
-    <div>
-      <h1 style={{ marginBottom: 24 }}>仪表盘</h1>
+    <>
+      <PageHeader title="仪表盘" />
 
       <Row gutter={[16, 16]}>
         <Col xs={24} sm={12} lg={6}>
-          <Card>
-            <Statistic
-              title="总数字员工"
-              value={stats.totalAgents}
-              prefix={<RobotOutlined />}
-              valueStyle={{ color: '#3f8600' }}
-            />
-          </Card>
+          <StatCard
+            title="总数字员工"
+            value={stats.totalAgents}
+            prefix={<RobotOutlined />}
+            valueStyle={{ color: '#10b981' }}
+          />
         </Col>
         <Col xs={24} sm={12} lg={6}>
-          <Card>
-            <Statistic
-              title="活跃员工"
-              value={stats.activeAgents}
-              prefix={<SyncOutlined />}
-              valueStyle={{ color: '#1890ff' }}
-            />
-          </Card>
+          <StatCard
+            title="活跃员工"
+            value={stats.activeAgents}
+            prefix={<SyncOutlined spin />}
+            valueStyle={{ color: '#6366f1' }}
+          />
         </Col>
         <Col xs={24} sm={12} lg={6}>
-          <Card>
-            <Statistic
-              title="已完成任务"
-              value={stats.completedTasks}
-              prefix={<CheckCircleOutlined />}
-              valueStyle={{ color: '#52c41a' }}
-            />
-          </Card>
+          <StatCard
+            title="已完成任务"
+            value={stats.completedTasks}
+            prefix={<CheckCircleOutlined />}
+            valueStyle={{ color: '#10b981' }}
+          />
         </Col>
         <Col xs={24} sm={12} lg={6}>
-          <Card>
-            <Statistic
-              title="失败任务"
-              value={stats.failedTasks}
-              prefix={<CloseCircleOutlined />}
-              valueStyle={{ color: '#cf1322' }}
-            />
-          </Card>
+          <StatCard
+            title="失败任务"
+            value={stats.failedTasks}
+            prefix={<CloseCircleOutlined />}
+            valueStyle={{ color: '#ef4444' }}
+          />
         </Col>
       </Row>
 
       <Row gutter={[16, 16]} style={{ marginTop: 16 }}>
-        <Col xs={24} sm={12}>
-          <Card>
-            <Statistic
-              title="总任务数"
-              value={stats.totalTasks}
-              suffix="个"
-            />
-          </Card>
+        <Col xs={24} sm={12} lg={8}>
+          <StatCard
+            title="总任务数"
+            value={stats.totalTasks}
+            suffix="个"
+          />
         </Col>
-        <Col xs={24} sm={12}>
-          <Card>
-            <Statistic
-              title="成功率"
-              value={stats.successRate}
-              precision={1}
-              suffix="%"
-              valueStyle={{ color: stats.successRate >= 80 ? '#3f8600' : '#cf1322' }}
-            />
-          </Card>
+        <Col xs={24} sm={12} lg={8}>
+          <StatCard
+            title="成功率"
+            value={stats.successRate}
+            precision={1}
+            suffix="%"
+            valueStyle={{ color: stats.successRate >= 80 ? '#10b981' : '#ef4444' }}
+          />
+        </Col>
+        <Col xs={24} sm={12} lg={8}>
+          <StatCard
+            title="今日任务"
+            value={stats.todayTasks}
+            suffix="个"
+          />
         </Col>
       </Row>
-
-      <Card style={{ marginTop: 16 }} title="今日任务">
-        <Statistic value={stats.todayTasks} suffix="个任务" />
-      </Card>
-    </div>
+    </>
   );
 };
 

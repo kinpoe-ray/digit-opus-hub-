@@ -3,15 +3,14 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { ConfigProvider } from 'antd';
 import zhCN from 'antd/locale/zh_CN';
 import { useAuthStore } from './stores/authStore';
+import { theme } from './theme';
 
-// 页面
 import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
 import AgentList from './pages/AgentList';
 import TaskList from './pages/TaskList';
 import MainLayout from './layouts/MainLayout';
 
-// 私有路由
 const PrivateRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { isAuthenticated } = useAuthStore();
   return isAuthenticated ? <>{children}</> : <Navigate to="/login" />;
@@ -19,7 +18,7 @@ const PrivateRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => 
 
 function App() {
   return (
-    <ConfigProvider locale={zhCN}>
+    <ConfigProvider locale={zhCN} theme={theme}>
       <BrowserRouter>
         <Routes>
           <Route path="/login" element={<Login />} />
