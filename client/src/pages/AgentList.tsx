@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback, useMemo, memo } from 'react';
 import { Table, Button, Space, Tag, Modal, Form, Input, Select, message, Popconfirm, Switch, Card } from 'antd';
 import { PlusOutlined, EditOutlined, DeleteOutlined } from '@ant-design/icons';
 import { agentsApi } from '../api/agents';
@@ -21,11 +21,7 @@ const AgentList: React.FC = () => {
   const [editingAgent, setEditingAgent] = useState<Agent | null>(null);
   const [form] = Form.useForm();
 
-  useEffect(() => {
-    loadAgents();
-  }, []);
-
-  const loadAgents = async () => {
+  const loadAgents = useCallback(async () => {
     setLoading(true);
     try {
       const response = await agentsApi.getAgents();
@@ -35,15 +31,19 @@ const AgentList: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
-  const showModal = (agent?: Agent) => {
+  useEffect(() => {
+    loadAgents();
+  }, [loadAgents]);
+
+  const showModal = useCallback((agent?: Agent) => {
     setEditingAgent(agent || null);
     form.setFieldsValue(agent || {});
     setIsModalVisible(true);
-  };
+  }, [form]);
 
-  const handleOk = async () => {
+  const handleOk = useCallback(async () => {
     try {
       const values = await form.validateFields();
       if (editingAgent) {
@@ -60,9 +60,9 @@ const AgentList: React.FC = () => {
         message.error('操作失败');
       }
     }
-  };
+  }, [form, editingAgent, loadAgents]);
 
-  const handleDelete = async (id: string) => {
+  const handleDelete = useCallback(async (id: string) => {
     try {
       await agentsApi.deleteAgent(id);
       message.success('删除成功');
@@ -70,9 +70,9 @@ const AgentList: React.FC = () => {
     } catch (error) {
       message.error('删除失败');
     }
-  };
+  }, [loadAgents]);
 
-  const handleToggle = async (agent: Agent) => {
+  const handleToggle = useCallback(async (agent: Agent) => {
     try {
       await agentsApi.toggleAgent(agent.id);
       message.success('状态已更新');
@@ -80,9 +80,9 @@ const AgentList: React.FC = () => {
     } catch (error) {
       message.error('更新状态失败');
     }
-  };
+  }, [loadAgents]);
 
-  const columns = [
+  const columns = useMemo(() => [
     { title: '名称', dataIndex: 'name', key: 'name' },
     {
       title: '类型',
@@ -134,7 +134,7 @@ const AgentList: React.FC = () => {
         </Space>
       ),
     },
-  ];
+  ], [handleToggle, showModal, handleDelete]);
 
   return (
     <>
@@ -206,4 +206,4 @@ const AgentList: React.FC = () => {
   );
 };
 
-export default AgentList;
+export default memo(AgentList);

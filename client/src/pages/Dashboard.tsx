@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo, memo } from 'react';
 import { Row, Col, Spin, message } from 'antd';
 import {
   RobotOutlined,
@@ -24,19 +24,23 @@ const Dashboard: React.FC = () => {
   });
 
   useEffect(() => {
+    const loadStats = async () => {
+      try {
+        const data = await dashboardApi.getStats();
+        setStats(data);
+      } catch (error) {
+        message.error('加载统计数据失败');
+      } finally {
+        setLoading(false);
+      }
+    };
     loadStats();
   }, []);
 
-  const loadStats = async () => {
-    try {
-      const data = await dashboardApi.getStats();
-      setStats(data);
-    } catch (error) {
-      message.error('加载统计数据失败');
-    } finally {
-      setLoading(false);
-    }
-  };
+  const successRateColor = useMemo(
+    () => (stats.successRate >= 80 ? '#10b981' : '#ef4444'),
+    [stats.successRate]
+  );
 
   if (loading) {
     return (
@@ -87,11 +91,7 @@ const Dashboard: React.FC = () => {
 
       <Row gutter={[16, 16]} style={{ marginTop: 16 }}>
         <Col xs={24} sm={12} lg={8}>
-          <StatCard
-            title="总任务数"
-            value={stats.totalTasks}
-            suffix="个"
-          />
+          <StatCard title="总任务数" value={stats.totalTasks} suffix="个" />
         </Col>
         <Col xs={24} sm={12} lg={8}>
           <StatCard
@@ -99,19 +99,15 @@ const Dashboard: React.FC = () => {
             value={stats.successRate}
             precision={1}
             suffix="%"
-            valueStyle={{ color: stats.successRate >= 80 ? '#10b981' : '#ef4444' }}
+            valueStyle={{ color: successRateColor }}
           />
         </Col>
         <Col xs={24} sm={12} lg={8}>
-          <StatCard
-            title="今日任务"
-            value={stats.todayTasks}
-            suffix="个"
-          />
+          <StatCard title="今日任务" value={stats.todayTasks} suffix="个" />
         </Col>
       </Row>
     </>
   );
 };
 
-export default Dashboard;
+export default memo(Dashboard);

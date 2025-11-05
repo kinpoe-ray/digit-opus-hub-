@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback, useMemo, memo } from 'react';
 import { Table, Button, Space, Tag, Modal, Form, Input, Select, message, Badge, Card } from 'antd';
 import { PlusOutlined, StopOutlined } from '@ant-design/icons';
 import { tasksApi } from '../api/tasks';
@@ -30,12 +30,7 @@ const TaskList: React.FC = () => {
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [form] = Form.useForm();
 
-  useEffect(() => {
-    loadTasks();
-    loadAgents();
-  }, []);
-
-  const loadTasks = async () => {
+  const loadTasks = useCallback(async () => {
     setLoading(true);
     try {
       const response = await tasksApi.getTasks();
@@ -45,23 +40,28 @@ const TaskList: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
-  const loadAgents = async () => {
+  const loadAgents = useCallback(async () => {
     try {
       const response = await agentsApi.getAgents();
       setAgents(response.data || []);
     } catch (error) {
       console.error('加载员工列表失败');
     }
-  };
+  }, []);
 
-  const showModal = () => {
+  useEffect(() => {
+    loadTasks();
+    loadAgents();
+  }, [loadTasks, loadAgents]);
+
+  const showModal = useCallback(() => {
     form.resetFields();
     setIsModalVisible(true);
-  };
+  }, [form]);
 
-  const handleOk = async () => {
+  const handleOk = useCallback(async () => {
     try {
       const values = await form.validateFields();
       await tasksApi.createTask({
@@ -76,9 +76,9 @@ const TaskList: React.FC = () => {
         message.error('创建任务失败');
       }
     }
-  };
+  }, [form, loadTasks]);
 
-  const handleCancel = async (id: string) => {
+  const handleCancel = useCallback(async (id: string) => {
     try {
       await tasksApi.cancelTask(id);
       message.success('任务已取消');
@@ -86,9 +86,9 @@ const TaskList: React.FC = () => {
     } catch (error) {
       message.error('取消任务失败');
     }
-  };
+  }, [loadTasks]);
 
-  const columns = [
+  const columns = useMemo(() => [
     { title: '任务标题', dataIndex: 'title', key: 'title' },
     { title: '类型', dataIndex: 'type', key: 'type' },
     {
@@ -128,7 +128,22 @@ const TaskList: React.FC = () => {
         </Space>
       ),
     },
-  ];
+  ], [handleCancel]);
+
+  const expandedRowRender = useCallback((record: Task) => (
+    <div style={{ padding: '8px 0' }}>
+      <p>
+        <strong>描述：</strong>
+        {record.description || '无'}
+      </p>
+      {record.error && (
+        <p style={{ color: '#ef4444' }}>
+          <strong>错误信息：</strong>
+          {record.error}
+        </p>
+      )}
+    </div>
+  ), []);
 
   return (
     <>
@@ -148,22 +163,7 @@ const TaskList: React.FC = () => {
           rowKey="id"
           loading={loading}
           pagination={{ pageSize: 10, showSizeChanger: false }}
-          expandable={{
-            expandedRowRender: (record) => (
-              <div style={{ padding: '8px 0' }}>
-                <p>
-                  <strong>描述：</strong>
-                  {record.description || '无'}
-                </p>
-                {record.error && (
-                  <p style={{ color: '#ef4444' }}>
-                    <strong>错误信息：</strong>
-                    {record.error}
-                  </p>
-                )}
-              </div>
-            ),
-          }}
+          expandable={{ expandedRowRender }}
         />
       </Card>
 
@@ -228,4 +228,4 @@ const TaskList: React.FC = () => {
   );
 };
 
-export default TaskList;
+export default memo(TaskList);

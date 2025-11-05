@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { memo } from 'react';
 import { Card, Statistic } from 'antd';
 
 interface StatCardProps {
@@ -10,7 +10,7 @@ interface StatCardProps {
   valueStyle?: React.CSSProperties;
 }
 
-export const StatCard: React.FC<StatCardProps> = ({
+export const StatCard: React.FC<StatCardProps> = memo(({
   title,
   value,
   prefix,
@@ -30,4 +30,6 @@ export const StatCard: React.FC<StatCardProps> = ({
       />
     </Card>
   );
-};
+});
+
+StatCard.displayName = 'StatCard';
