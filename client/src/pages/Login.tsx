@@ -25,24 +25,11 @@ const Login: React.FC = () => {
   };
 
   return (
-    <div
-      style={{
-        display: 'flex',
-        justifyContent: 'center',
-        alignItems: 'center',
-        minHeight: '100vh',
-        background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-      }}
-    >
-      <Card
-        style={{
-          width: 400,
-          boxShadow: '0 8px 16px rgba(0,0,0,0.1)',
-        }}
-      >
-        <div style={{ textAlign: 'center', marginBottom: 32 }}>
-          <h1 style={{ fontSize: 28, marginBottom: 8 }}>🤖 digit-opus-hub</h1>
-          <p style={{ color: '#666' }}>数字员工管理中台</p>
+    <div className="login-container">
+      <Card className="login-card">
+        <div className="login-header">
+          <h1 className="login-title">🤖 DigitOpus</h1>
+          <p className="login-subtitle">数字员工管理中台</p>
         </div>
 
         <Form
@@ -75,7 +62,7 @@ const Login: React.FC = () => {
             </Button>
           </Form.Item>
 
-          <div style={{ textAlign: 'center', color: '#999', fontSize: 12 }}>
+          <div className="login-demo">
             <p>演示账号：demo@example.com / demo123</p>
           </div>
         </Form>

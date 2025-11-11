@@ -1,22 +1,27 @@
-import React, { useEffect, useState } from 'react';
-import {
-  Table,
-  Button,
-  Space,
-  Tag,
-  Modal,
-  Form,
-  Input,
-  Select,
-  message,
-  Badge,
-} from 'antd';
+import React, { useEffect, useState, useCallback, useMemo, memo } from 'react';
+import { Table, Button, Space, Tag, Modal, Form, Input, Select, message, Badge, Card } from 'antd';
 import { PlusOutlined, StopOutlined } from '@ant-design/icons';
 import { tasksApi } from '../api/tasks';
 import { agentsApi } from '../api/agents';
 import { Task, TaskStatus, TaskPriority, Agent } from '../types';
+import { PageHeader } from '../components';
 
 const { TextArea } = Input;
+
+const STATUS_MAP = {
+  [TaskStatus.PENDING]: { status: 'default' as const, text: '等待中' },
+  [TaskStatus.RUNNING]: { status: 'processing' as const, text: '执行中' },
+  [TaskStatus.COMPLETED]: { status: 'success' as const, text: '已完成' },
+  [TaskStatus.FAILED]: { status: 'error' as const, text: '失败' },
+  [TaskStatus.CANCELLED]: { status: 'warning' as const, text: '已取消' },
+};
+
+const PRIORITY_MAP = {
+  [TaskPriority.LOW]: { color: 'default', text: '低' },
+  [TaskPriority.MEDIUM]: { color: 'blue', text: '中' },
+  [TaskPriority.HIGH]: { color: 'orange', text: '高' },
+  [TaskPriority.URGENT]: { color: 'red', text: '紧急' },
+};
 
 const TaskList: React.FC = () => {
   const [loading, setLoading] = useState(false);
@@ -25,12 +30,7 @@ const TaskList: React.FC = () => {
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [form] = Form.useForm();
 
-  useEffect(() => {
-    loadTasks();
-    loadAgents();
-  }, []);
-
-  const loadTasks = async () => {
+  const loadTasks = useCallback(async () => {
     setLoading(true);
     try {
       const response = await tasksApi.getTasks();
@@ -40,23 +40,28 @@ const TaskList: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
-  const loadAgents = async () => {
+  const loadAgents = useCallback(async () => {
     try {
       const response = await agentsApi.getAgents();
       setAgents(response.data || []);
     } catch (error) {
       console.error('加载员工列表失败');
     }
-  };
+  }, []);
 
-  const showModal = () => {
+  useEffect(() => {
+    loadTasks();
+    loadAgents();
+  }, [loadTasks, loadAgents]);
+
+  const showModal = useCallback(() => {
     form.resetFields();
     setIsModalVisible(true);
-  };
+  }, [form]);
 
-  const handleOk = async () => {
+  const handleOk = useCallback(async () => {
     try {
       const values = await form.validateFields();
       await tasksApi.createTask({
@@ -67,14 +72,13 @@ const TaskList: React.FC = () => {
       setIsModalVisible(false);
       loadTasks();
     } catch (error: any) {
-      if (error.errorFields) {
-        return;
+      if (!error.errorFields) {
+        message.error('创建任务失败');
       }
-      message.error('创建任务失败');
     }
-  };
+  }, [form, loadTasks]);
 
-  const handleCancel = async (id: string) => {
+  const handleCancel = useCallback(async (id: string) => {
     try {
       await tasksApi.cancelTask(id);
       message.success('任务已取消');
@@ -82,53 +86,28 @@ const TaskList: React.FC = () => {
     } catch (error) {
       message.error('取消任务失败');
     }
-  };
+  }, [loadTasks]);
 
-  const getStatusBadge = (status: TaskStatus) => {
-    const statusMap = {
-      [TaskStatus.PENDING]: { status: 'default' as const, text: '等待中' },
-      [TaskStatus.RUNNING]: { status: 'processing' as const, text: '执行中' },
-      [TaskStatus.COMPLETED]: { status: 'success' as const, text: '已完成' },
-      [TaskStatus.FAILED]: { status: 'error' as const, text: '失败' },
-      [TaskStatus.CANCELLED]: { status: 'warning' as const, text: '已取消' },
-    };
-    const { status: badgeStatus, text } = statusMap[status];
-    return <Badge status={badgeStatus} text={text} />;
-  };
-
-  const getPriorityTag = (priority: TaskPriority) => {
-    const priorityMap = {
-      [TaskPriority.LOW]: { color: 'default', text: '低' },
-      [TaskPriority.MEDIUM]: { color: 'blue', text: '中' },
-      [TaskPriority.HIGH]: { color: 'orange', text: '高' },
-      [TaskPriority.URGENT]: { color: 'red', text: '紧急' },
-    };
-    const { color, text } = priorityMap[priority];
-    return <Tag color={color}>{text}</Tag>;
-  };
-
-  const columns = [
-    {
-      title: '任务标题',
-      dataIndex: 'title',
-      key: 'title',
-    },
-    {
-      title: '类型',
-      dataIndex: 'type',
-      key: 'type',
-    },
+  const columns = useMemo(() => [
+    { title: '任务标题', dataIndex: 'title', key: 'title' },
+    { title: '类型', dataIndex: 'type', key: 'type' },
     {
       title: '优先级',
       dataIndex: 'priority',
       key: 'priority',
-      render: (priority: TaskPriority) => getPriorityTag(priority),
+      render: (priority: TaskPriority) => {
+        const { color, text } = PRIORITY_MAP[priority];
+        return <Tag color={color}>{text}</Tag>;
+      },
     },
     {
       title: '状态',
       dataIndex: 'status',
       key: 'status',
-      render: (status: TaskStatus) => getStatusBadge(status),
+      render: (status: TaskStatus) => {
+        const { status: badgeStatus, text } = STATUS_MAP[status];
+        return <Badge status={badgeStatus} text={text} />;
+      },
     },
     {
       title: '创建时间',
@@ -141,54 +120,52 @@ const TaskList: React.FC = () => {
       key: 'action',
       render: (_: any, record: Task) => (
         <Space>
-          {(record.status === TaskStatus.PENDING ||
-            record.status === TaskStatus.RUNNING) && (
-            <Button
-              type="link"
-              danger
-              icon={<StopOutlined />}
-              onClick={() => handleCancel(record.id)}
-            >
+          {(record.status === TaskStatus.PENDING || record.status === TaskStatus.RUNNING) && (
+            <Button type="link" danger icon={<StopOutlined />} onClick={() => handleCancel(record.id)}>
               取消
             </Button>
           )}
         </Space>
       ),
     },
-  ];
+  ], [handleCancel]);
+
+  const expandedRowRender = useCallback((record: Task) => (
+    <div style={{ padding: '8px 0' }}>
+      <p>
+        <strong>描述：</strong>
+        {record.description || '无'}
+      </p>
+      {record.error && (
+        <p style={{ color: '#ef4444' }}>
+          <strong>错误信息：</strong>
+          {record.error}
+        </p>
+      )}
+    </div>
+  ), []);
 
   return (
-    <div>
-      <div style={{ marginBottom: 16, display: 'flex', justifyContent: 'space-between' }}>
-        <h1>任务列表</h1>
-        <Button type="primary" icon={<PlusOutlined />} onClick={showModal}>
-          创建任务
-        </Button>
-      </div>
-
-      <Table
-        columns={columns}
-        dataSource={tasks}
-        rowKey="id"
-        loading={loading}
-        pagination={{ pageSize: 10 }}
-        expandable={{
-          expandedRowRender: (record) => (
-            <div style={{ padding: '8px 0' }}>
-              <p>
-                <strong>描述：</strong>
-                {record.description || '无'}
-              </p>
-              {record.error && (
-                <p style={{ color: 'red' }}>
-                  <strong>错误信息：</strong>
-                  {record.error}
-                </p>
-              )}
-            </div>
-          ),
-        }}
+    <>
+      <PageHeader
+        title="任务列表"
+        extra={
+          <Button type="primary" icon={<PlusOutlined />} onClick={showModal}>
+            创建任务
+          </Button>
+        }
       />
+
+      <Card>
+        <Table
+          columns={columns}
+          dataSource={tasks}
+          rowKey="id"
+          loading={loading}
+          pagination={{ pageSize: 10, showSizeChanger: false }}
+          expandable={{ expandedRowRender }}
+        />
+      </Card>
 
       <Modal
         title="创建任务"
@@ -247,8 +224,8 @@ const TaskList: React.FC = () => {
           </Form.Item>
         </Form>
       </Modal>
-    </div>
+    </>
   );
 };
 
-export default TaskList;
+export default memo(TaskList);

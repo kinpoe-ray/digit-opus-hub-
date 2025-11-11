@@ -1,22 +1,18 @@
-import React, { useEffect, useState } from 'react';
-import {
-  Table,
-  Button,
-  Space,
-  Tag,
-  Modal,
-  Form,
-  Input,
-  Select,
-  message,
-  Popconfirm,
-  Switch,
-} from 'antd';
+import React, { useEffect, useState, useCallback, useMemo, memo } from 'react';
+import { Table, Button, Space, Tag, Modal, Form, Input, Select, message, Popconfirm, Switch, Card } from 'antd';
 import { PlusOutlined, EditOutlined, DeleteOutlined } from '@ant-design/icons';
 import { agentsApi } from '../api/agents';
 import { Agent, AgentType, AgentStatus } from '../types';
+import { PageHeader } from '../components';
 
 const { TextArea } = Input;
+
+const AGENT_TYPE_MAP = {
+  [AgentType.CUSTOMER_SERVICE]: { label: '客服', color: 'blue' },
+  [AgentType.CONTENT_CREATOR]: { label: '内容创作', color: 'purple' },
+  [AgentType.DATA_ANALYST]: { label: '数据分析', color: 'green' },
+  [AgentType.CUSTOM]: { label: '自定义', color: 'default' },
+};
 
 const AgentList: React.FC = () => {
   const [loading, setLoading] = useState(false);
@@ -25,11 +21,7 @@ const AgentList: React.FC = () => {
   const [editingAgent, setEditingAgent] = useState<Agent | null>(null);
   const [form] = Form.useForm();
 
-  useEffect(() => {
-    loadAgents();
-  }, []);
-
-  const loadAgents = async () => {
+  const loadAgents = useCallback(async () => {
     setLoading(true);
     try {
       const response = await agentsApi.getAgents();
@@ -39,20 +31,19 @@ const AgentList: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
-  const showModal = (agent?: Agent) => {
-    if (agent) {
-      setEditingAgent(agent);
-      form.setFieldsValue(agent);
-    } else {
-      setEditingAgent(null);
-      form.resetFields();
-    }
+  useEffect(() => {
+    loadAgents();
+  }, [loadAgents]);
+
+  const showModal = useCallback((agent?: Agent) => {
+    setEditingAgent(agent || null);
+    form.setFieldsValue(agent || {});
     setIsModalVisible(true);
-  };
+  }, [form]);
 
-  const handleOk = async () => {
+  const handleOk = useCallback(async () => {
     try {
       const values = await form.validateFields();
       if (editingAgent) {
@@ -65,14 +56,13 @@ const AgentList: React.FC = () => {
       setIsModalVisible(false);
       loadAgents();
     } catch (error: any) {
-      if (error.errorFields) {
-        return; // 表单验证错误
+      if (!error.errorFields) {
+        message.error('操作失败');
       }
-      message.error('操作失败');
     }
-  };
+  }, [form, editingAgent, loadAgents]);
 
-  const handleDelete = async (id: string) => {
+  const handleDelete = useCallback(async (id: string) => {
     try {
       await agentsApi.deleteAgent(id);
       message.success('删除成功');
@@ -80,9 +70,9 @@ const AgentList: React.FC = () => {
     } catch (error) {
       message.error('删除失败');
     }
-  };
+  }, [loadAgents]);
 
-  const handleToggle = async (agent: Agent) => {
+  const handleToggle = useCallback(async (agent: Agent) => {
     try {
       await agentsApi.toggleAgent(agent.id);
       message.success('状态已更新');
@@ -90,26 +80,17 @@ const AgentList: React.FC = () => {
     } catch (error) {
       message.error('更新状态失败');
     }
-  };
+  }, [loadAgents]);
 
-  const columns = [
-    {
-      title: '名称',
-      dataIndex: 'name',
-      key: 'name',
-    },
+  const columns = useMemo(() => [
+    { title: '名称', dataIndex: 'name', key: 'name' },
     {
       title: '类型',
       dataIndex: 'type',
       key: 'type',
       render: (type: AgentType) => {
-        const typeMap = {
-          [AgentType.CUSTOMER_SERVICE]: '客服',
-          [AgentType.CONTENT_CREATOR]: '内容创作',
-          [AgentType.DATA_ANALYST]: '数据分析',
-          [AgentType.CUSTOM]: '自定义',
-        };
-        return <Tag>{typeMap[type]}</Tag>;
+        const { label, color } = AGENT_TYPE_MAP[type];
+        return <Tag color={color}>{label}</Tag>;
       },
     },
     {
@@ -125,11 +106,7 @@ const AgentList: React.FC = () => {
         />
       ),
     },
-    {
-      title: '任务数',
-      dataIndex: 'totalTasks',
-      key: 'totalTasks',
-    },
+    { title: '任务数', dataIndex: 'totalTasks', key: 'totalTasks' },
     {
       title: '成功率',
       dataIndex: 'successRate',
@@ -141,11 +118,7 @@ const AgentList: React.FC = () => {
       key: 'action',
       render: (_: any, record: Agent) => (
         <Space>
-          <Button
-            type="link"
-            icon={<EditOutlined />}
-            onClick={() => showModal(record)}
-          >
+          <Button type="link" icon={<EditOutlined />} onClick={() => showModal(record)}>
             编辑
           </Button>
           <Popconfirm
@@ -161,24 +134,28 @@ const AgentList: React.FC = () => {
         </Space>
       ),
     },
-  ];
+  ], [handleToggle, showModal, handleDelete]);
 
   return (
-    <div>
-      <div style={{ marginBottom: 16, display: 'flex', justifyContent: 'space-between' }}>
-        <h1>数字员工管理</h1>
-        <Button type="primary" icon={<PlusOutlined />} onClick={() => showModal()}>
-          创建员工
-        </Button>
-      </div>
-
-      <Table
-        columns={columns}
-        dataSource={agents}
-        rowKey="id"
-        loading={loading}
-        pagination={{ pageSize: 10 }}
+    <>
+      <PageHeader
+        title="数字员工管理"
+        extra={
+          <Button type="primary" icon={<PlusOutlined />} onClick={() => showModal()}>
+            创建员工
+          </Button>
+        }
       />
+
+      <Card>
+        <Table
+          columns={columns}
+          dataSource={agents}
+          rowKey="id"
+          loading={loading}
+          pagination={{ pageSize: 10, showSizeChanger: false }}
+        />
+      </Card>
 
       <Modal
         title={editingAgent ? '编辑数字员工' : '创建数字员工'}
@@ -225,8 +202,8 @@ const AgentList: React.FC = () => {
           </Form.Item>
         </Form>
       </Modal>
-    </div>
+    </>
   );
 };
 
-export default AgentList;
+export default memo(AgentList);
