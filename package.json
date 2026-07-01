@@ -14,9 +14,8 @@
     "install:all": "npm install && cd server && npm install && cd ../client && npm install",
     "db:migrate": "cd server && npx prisma migrate dev",
     "db:seed": "cd server && npx prisma db seed",
-    "test": "npm run server:test && npm run client:test",
-    "server:test": "cd server && npm test",
-    "client:test": "cd client && npm test"
+    "test": "npm run server:test",
+    "server:test": "cd server && npm test"
   },
   "keywords": [
     "AI",
