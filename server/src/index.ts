@@ -3,12 +3,13 @@ import { registerProviders } from './integrations/register';
 import { TaskService } from './services/taskService';
 import { processTask } from './queues/processors/taskProcessor';
 import logger from './lib/logger';
-import app from './app';
+import { createApp } from './app';
 
 // 注册 AI Providers
 registerProviders();
 
 const PORT = process.env.PORT || 3000;
+const app = createApp();
 
 // 初始化任务队列和 Worker
 const queue = TaskService.initQueue();

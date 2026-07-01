@@ -1,8 +1,9 @@
 import request from 'supertest';
-import app from '../app';
+import { createApp } from '../app';
 
 describe('GET /health', () => {
   it('returns an ok status with a timestamp', async () => {
+    const app = createApp({ includeApiRoutes: false });
     const response = await request(app).get('/health');
 
     expect(response.status).toBe(200);

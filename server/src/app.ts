@@ -1,16 +1,10 @@
 import express from 'express';
+import type { Router } from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
 import dotenv from 'dotenv';
 import swaggerUi from 'swagger-ui-express';
 import swaggerJsdoc from 'swagger-jsdoc';
-
-// 导入路由
-import authRoutes from './routes/auth';
-import agentRoutes from './routes/agents';
-import taskRoutes from './routes/tasks';
-import dashboardRoutes from './routes/dashboard';
-import monitoringRoutes from './routes/monitoring';
 
 // 导入中间件
 import { errorHandler } from './middleware/errorHandler';
@@ -21,7 +15,26 @@ dotenv.config();
 
 const PORT = process.env.PORT || 3000;
 
-export const createApp = () => {
+interface CreateAppOptions {
+  includeApiRoutes?: boolean;
+}
+
+const loadRoutes = (): {
+  authRoutes: Router;
+  agentRoutes: Router;
+  taskRoutes: Router;
+  dashboardRoutes: Router;
+  monitoringRoutes: Router;
+} => ({
+  authRoutes: require('./routes/auth').default as Router,
+  agentRoutes: require('./routes/agents').default as Router,
+  taskRoutes: require('./routes/tasks').default as Router,
+  dashboardRoutes: require('./routes/dashboard').default as Router,
+  monitoringRoutes: require('./routes/monitoring').default as Router,
+});
+
+export const createApp = (options: CreateAppOptions = {}) => {
+  const { includeApiRoutes = true } = options;
   const app = express();
 
   // 安全中间件
@@ -39,12 +52,22 @@ export const createApp = () => {
   app.use(requestLogger);
   app.use(rateLimiter);
 
-  // API 路由
-  app.use('/api/auth', authRoutes);
-  app.use('/api/agents', agentRoutes);
-  app.use('/api/tasks', taskRoutes);
-  app.use('/api/dashboard', dashboardRoutes);
-  app.use('/api/monitoring', monitoringRoutes);
+  if (includeApiRoutes) {
+    const {
+      authRoutes,
+      agentRoutes,
+      taskRoutes,
+      dashboardRoutes,
+      monitoringRoutes,
+    } = loadRoutes();
+
+    // API 路由
+    app.use('/api/auth', authRoutes);
+    app.use('/api/agents', agentRoutes);
+    app.use('/api/tasks', taskRoutes);
+    app.use('/api/dashboard', dashboardRoutes);
+    app.use('/api/monitoring', monitoringRoutes);
+  }
 
   // Swagger 文档
   const swaggerOptions = {
@@ -78,7 +101,3 @@ export const createApp = () => {
 
   return app;
 };
-
-const app = createApp();
-
-export default app;
