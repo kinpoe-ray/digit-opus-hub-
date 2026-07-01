@@ -12,9 +12,9 @@
     "server:build": "cd server && npm run build",
     "start": "cd server && npm start",
     "install:all": "npm install && cd server && npm install && cd ../client && npm install",
-    "db:generate": "cd server && npx prisma generate --schema ../prisma/schema.prisma",
-    "db:migrate": "cd server && npx prisma migrate dev --schema ../prisma/schema.prisma",
-    "db:studio": "cd server && npx prisma studio --schema ../prisma/schema.prisma",
+    "db:generate": "cd server && npm run db:generate",
+    "db:migrate": "cd server && npm run db:migrate",
+    "db:studio": "cd server && npm run db:studio",
     "db:seed": "cd server && npm run db:seed",
     "test": "npm run server:test",
     "server:test": "cd server && npm test"
