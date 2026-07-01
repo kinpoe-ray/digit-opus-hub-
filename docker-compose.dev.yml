@@ -76,7 +76,7 @@ services:
       dockerfile: client/Dockerfile.dev
     container_name: digit-opus-hub-client
     environment:
-      VITE_API_URL: http://localhost:3000/api
+      VITE_API_PROXY_TARGET: http://server:3000
     ports:
       - "5173:5173"
     volumes:
