@@ -5,12 +5,12 @@
   "main": "dist/index.js",
   "scripts": {
     "dev": "nodemon --exec ts-node src/index.ts",
-    "build": "tsc",
+    "build": "npm run db:generate && tsc",
     "start": "node dist/index.js",
     "test": "jest",
     "lint": "eslint src --ext .ts",
     "format": "prettier --write \"src/**/*.ts\"",
-    "db:generate": "prisma generate",
+    "db:generate": "prisma generate --schema ../prisma/schema.prisma",
     "db:migrate": "prisma migrate dev",
     "db:studio": "prisma studio"
   },
