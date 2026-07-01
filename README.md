@@ -79,7 +79,10 @@ docker-compose up -d
 # 4. 运行数据库迁移
 docker-compose exec server npm run db:migrate
 
-# 5. 访问应用
+# 5. 初始化演示数据
+docker-compose exec server npm run db:seed
+
+# 6. 访问应用
 # 前端: http://localhost:5173
 # 后端: http://localhost:3000
 # API 文档: http://localhost:3000/api-docs
@@ -98,8 +101,9 @@ cp .env.example .env
 # 3. 启动 PostgreSQL 和 Redis
 # 可以使用 Docker 或本地安装
 
-# 4. 运行数据库迁移
-cd server && npx prisma migrate dev
+# 4. 运行数据库迁移并初始化演示数据
+npm run db:migrate
+npm run db:seed
 
 # 5. 启动开发服务器（前后端）
 npm run dev

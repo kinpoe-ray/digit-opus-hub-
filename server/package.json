@@ -12,7 +12,12 @@
     "format": "prettier --write \"src/**/*.ts\"",
     "db:generate": "prisma generate",
     "db:migrate": "prisma migrate dev",
+    "db:seed": "prisma db seed",
     "db:studio": "prisma studio"
+  },
+  "prisma": {
+    "schema": "../prisma/schema.prisma",
+    "seed": "ts-node src/scripts/seed.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.68.0",

@@ -154,6 +154,10 @@ docker-compose -f docker-compose.dev.yml down
 
 # 重新启动
 ./start-dev.sh
+
+# 首次启动后运行数据库迁移并初始化演示数据
+npm run db:migrate
+npm run db:seed
 ```
 
 ## 📝 API 端点
