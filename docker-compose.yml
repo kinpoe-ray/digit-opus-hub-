@@ -36,15 +36,28 @@ services:
   # 后端 API
   server:
     build:
-      context: ./server
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: server/Dockerfile
     container_name: digit-opus-hub-server
     environment:
-      NODE_ENV: development
+      NODE_ENV: production
       DATABASE_URL: postgresql://postgres:password@postgres:5432/digit_opus_hub?schema=public
       REDIS_URL: redis://redis:6379
-      JWT_SECRET: ${JWT_SECRET}
+      JWT_SECRET: ${JWT_SECRET:-change-this-in-production}
+      JWT_EXPIRES_IN: ${JWT_EXPIRES_IN:-7d}
       OPENAI_API_KEY: ${OPENAI_API_KEY}
+      OPENAI_BASE_URL: ${OPENAI_BASE_URL:-}
+      OPENAI_ORGANIZATION: ${OPENAI_ORGANIZATION:-}
+      OPENAI_TIMEOUT: ${OPENAI_TIMEOUT:-60000}
+      OPENAI_MAX_RETRIES: ${OPENAI_MAX_RETRIES:-3}
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY}
+      ANTHROPIC_BASE_URL: ${ANTHROPIC_BASE_URL:-}
+      ANTHROPIC_TIMEOUT: ${ANTHROPIC_TIMEOUT:-60000}
+      ANTHROPIC_MAX_RETRIES: ${ANTHROPIC_MAX_RETRIES:-3}
+      PORT: 3000
+      FRONTEND_URL: http://localhost:5173
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+      LOG_DIR: ${LOG_DIR:-logs}
     ports:
       - "3000:3000"
     depends_on:
@@ -52,25 +65,19 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
-    volumes:
-      - ./server:/app
-      - /app/node_modules
-    command: npm run dev
+    restart: unless-stopped
 
   # 前端应用
   client:
     build:
-      context: ./client
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: client/Dockerfile
     container_name: digit-opus-hub-client
-    environment:
-      VITE_API_URL: http://localhost:3000/api
     ports:
-      - "5173:5173"
-    volumes:
-      - ./client:/app
-      - /app/node_modules
-    command: npm run dev
+      - "5173:80"
+    depends_on:
+      - server
+    restart: unless-stopped
 
 volumes:
   postgres_data:

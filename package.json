@@ -12,11 +12,12 @@
     "server:build": "cd server && npm run build",
     "start": "cd server && npm start",
     "install:all": "npm install && cd server && npm install && cd ../client && npm install",
-    "db:migrate": "cd server && npx prisma migrate dev",
-    "db:seed": "cd server && npx prisma db seed",
-    "test": "npm run server:test && npm run client:test",
-    "server:test": "cd server && npm test",
-    "client:test": "cd client && npm test"
+    "db:generate": "cd server && npx prisma generate --schema ../prisma/schema.prisma",
+    "db:migrate": "cd server && npx prisma migrate dev --schema ../prisma/schema.prisma",
+    "db:studio": "cd server && npx prisma studio --schema ../prisma/schema.prisma",
+    "db:seed": "cd server && npm run db:seed",
+    "test": "npm run server:test",
+    "server:test": "cd server && npm test"
   },
   "keywords": [
     "AI",

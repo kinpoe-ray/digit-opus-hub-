@@ -62,7 +62,7 @@
 - Redis >= 7
 - OpenAI API Key（可选）
 
-### 方式 1: Docker 快速部署（推荐）
+### 方式 1: Docker 开发环境（推荐）
 
 ```bash
 # 1. 克隆仓库
@@ -74,10 +74,10 @@ cp .env.example .env
 # 编辑 .env 文件，填入必要的配置
 
 # 3. 启动所有服务
-docker-compose up -d
+docker compose -f docker-compose.dev.yml up --build -d
 
 # 4. 运行数据库迁移
-docker-compose exec server npm run db:migrate
+docker compose -f docker-compose.dev.yml exec server npx prisma migrate dev --schema prisma/schema.prisma
 
 # 5. 访问应用
 # 前端: http://localhost:5173
@@ -93,13 +93,17 @@ npm run install:all
 
 # 2. 配置环境变量
 cp .env.example .env
-# 编辑 .env 文件
+# 本地 server 脚本从 server/ 目录启动，如需 dotenv 自动加载可同步一份：
+cp .env.example server/.env
+# 如需覆盖前端 API 地址：
+printf "VITE_API_URL=http://localhost:3000/api\n" > client/.env.local
 
 # 3. 启动 PostgreSQL 和 Redis
-# 可以使用 Docker 或本地安装
+docker compose -f docker-compose.dev.yml up -d postgres redis
 
-# 4. 运行数据库迁移
-cd server && npx prisma migrate dev
+# 4. 生成 Prisma Client 并运行数据库迁移
+npm run db:generate
+npm run db:migrate
 
 # 5. 启动开发服务器（前后端）
 npm run dev
@@ -116,36 +120,44 @@ npm run dev
 digit-opus-hub/
 ├── client/                 # React 前端应用
 │   ├── src/
+│   │   ├── api/           # API 请求封装
 │   │   ├── components/    # 可复用组件
+│   │   ├── layouts/       # 页面布局
 │   │   ├── pages/         # 页面组件
 │   │   ├── stores/        # Zustand stores
-│   │   ├── api/           # API 请求
-│   │   ├── hooks/         # 自定义 Hooks
 │   │   ├── types/         # TypeScript 类型
-│   │   └── App.tsx        # 应用入口
+│   │   ├── App.tsx        # 应用根组件
+│   │   ├── main.tsx       # 浏览器入口
+│   │   └── theme.ts       # Ant Design 主题
 │   ├── package.json
+│   ├── tsconfig.json
 │   └── vite.config.ts
 │
 ├── server/                 # Node.js 后端服务
 │   ├── src/
-│   │   ├── routes/        # API 路由
-│   │   ├── controllers/   # 控制器
-│   │   ├── services/      # 业务逻辑
+│   │   ├── integrations/  # LLM Provider 集成
+│   │   ├── lib/           # Prisma、日志等基础设施
 │   │   ├── middleware/    # 中间件
-│   │   ├── models/        # 数据模型
-│   │   ├── utils/         # 工具函数
+│   │   ├── queues/        # Bull 队列和任务处理器
+│   │   ├── routes/        # API 路由
+│   │   ├── scripts/       # 数据初始化脚本
+│   │   ├── services/      # 业务逻辑
 │   │   └── index.ts       # 入口文件
-│   ├── prisma/
-│   │   └── schema.prisma  # 数据库 Schema
 │   ├── package.json
 │   └── tsconfig.json
 │
+├── prisma/
+│   └── schema.prisma      # 数据库 Schema
+│
 ├── docs/                   # 文档
-│   ├── prd.md             # 产品需求文档
+│   ├── business-analysis.md
 │   ├── architecture/      # 架构设计
 │   └── design/            # UI/UX 设计
 │
-├── docker-compose.yml      # Docker 编排
+├── prd.md                  # 产品需求文档
+├── docker-compose.yml      # 容器化运行配置
+├── docker-compose.dev.yml  # 开发环境容器配置
+├── start-dev.sh            # Docker 开发环境启动脚本
 ├── .env.example            # 环境变量模板
 ├── package.json            # 根 package.json
 └── README.md               # 本文件
@@ -180,17 +192,27 @@ JWT_SECRET=your-secret-key
 
 # AI Provider API Keys
 OPENAI_API_KEY=sk-...
+OPENAI_BASE_URL=
+OPENAI_ORGANIZATION=
+OPENAI_TIMEOUT=60000
+OPENAI_MAX_RETRIES=3
 ANTHROPIC_API_KEY=sk-ant-...
+ANTHROPIC_BASE_URL=
+ANTHROPIC_TIMEOUT=60000
+ANTHROPIC_MAX_RETRIES=3
 
 # 应用配置
 NODE_ENV=development
 PORT=3000
 FRONTEND_URL=http://localhost:5173
+VITE_API_URL=http://localhost:3000/api
 
 # 日志配置
 LOG_LEVEL=info
 LOG_DIR=logs
 ```
+
+> 前端本地开发时，Vite 会读取 `client/.env.local`；根目录 `.env` 主要供 Docker Compose 和后端服务使用。
 
 ---
 
@@ -216,18 +238,17 @@ LOG_DIR=logs
 
 ## 🧪 测试
 
+当前仓库只配置了后端 Jest 脚本，尚未接入前端测试框架或 coverage 脚本。
+
 ```bash
-# 运行所有测试
+# 运行已配置的测试（当前等同于后端 Jest）
 npm test
 
 # 仅运行后端测试
 npm run server:test
 
-# 仅运行前端测试
-npm run client:test
-
-# 测试覆盖率
-npm run test:coverage
+# 前端基础验证
+npm run client:build
 ```
 
 ---
@@ -240,11 +261,11 @@ npm run test:coverage
 # 1. 构建应用
 npm run build
 
-# 2. 使用 PM2 运行后端
+# 2. 使用 PM2 运行后端（需先配置数据库、Redis 和环境变量）
 cd server
 pm2 start dist/index.js --name digit-opus-hub-server
 
-# 3. 前端部署到 CDN（例如 Vercel, Netlify）
+# 3. 前端部署到静态托管或 CDN
 cd client
 npm run build
 # 部署 dist/ 目录
@@ -253,8 +274,14 @@ npm run build
 ### 使用 Docker 部署
 
 ```bash
-# 生产环境 Docker Compose
-docker-compose -f docker-compose.prod.yml up -d
+# 构建并启动默认 Compose 服务
+docker compose up --build -d
+
+# 当前仓库未提交 Prisma migrations，首次试跑可使用：
+docker compose exec server npx prisma migrate dev --schema prisma/schema.prisma
+
+# 已生成并提交 migrations 的生产环境可改用：
+docker compose exec server npx prisma migrate deploy --schema prisma/schema.prisma
 ```
 
 ---
