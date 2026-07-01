@@ -9,7 +9,7 @@ import prisma from '../../lib/prisma';
 import { ProviderFactory } from '../../integrations/factory';
 import { AIProviderType, AIModel, AIRequest } from '../../integrations/types';
 import { TaskStatus } from '@prisma/client';
-import logger, { taskLogger, aiLogger } from '../../lib/logger';
+import { taskLogger, aiLogger } from '../../lib/logger';
 
 export async function processTask(job: Job<TaskJobData>): Promise<TaskJobResult> {
   const { taskId, agentId, input } = job.data;
