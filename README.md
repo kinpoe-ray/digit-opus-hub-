@@ -108,6 +108,16 @@ npm run dev
 # 后端运行在 http://localhost:3000
 ```
 
+本地直接运行前后端时，前端开发服务器默认会把相对路径 `/api` 代理到
+`http://localhost:3000`。如果后端运行在其他地址，可在 `.env` 中调整：
+
+```bash
+VITE_API_PROXY_TARGET=http://localhost:3000
+```
+
+Docker Compose 开发环境会显式覆盖该代理目标为 `http://server:3000`，以便前端容器通过
+Docker 内部网络访问后端容器。
+
 ---
 
 ## 📁 项目结构
@@ -186,6 +196,9 @@ ANTHROPIC_API_KEY=sk-ant-...
 NODE_ENV=development
 PORT=3000
 FRONTEND_URL=http://localhost:5173
+
+# 前端开发代理
+VITE_API_PROXY_TARGET=http://localhost:3000
 
 # 日志配置
 LOG_LEVEL=info
