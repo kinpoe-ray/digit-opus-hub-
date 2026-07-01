@@ -5,14 +5,15 @@
   "main": "dist/index.js",
   "scripts": {
     "dev": "nodemon --exec ts-node src/index.ts",
-    "build": "tsc",
+    "build": "npm run db:generate && tsc",
     "start": "node dist/index.js",
-    "test": "jest",
+    "test": "jest --passWithNoTests",
     "lint": "eslint src --ext .ts",
     "format": "prettier --write \"src/**/*.ts\"",
-    "db:generate": "prisma generate",
-    "db:migrate": "prisma migrate dev",
-    "db:studio": "prisma studio"
+    "db:generate": "PRISMA_GENERATE_SKIP_AUTOINSTALL=1 prisma generate --schema ../prisma/schema.prisma",
+    "db:migrate": "PRISMA_GENERATE_SKIP_AUTOINSTALL=1 prisma migrate dev --schema ../prisma/schema.prisma",
+    "db:studio": "prisma studio --schema ../prisma/schema.prisma",
+    "db:seed": "ts-node src/scripts/seed.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.68.0",

@@ -65,7 +65,6 @@ export const theme: ThemeConfig = {
     },
     Tag: {
       borderRadiusSM: 8,
-      fontWeight: 600,
     },
   },
 };
